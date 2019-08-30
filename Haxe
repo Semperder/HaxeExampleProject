@@ -1,0 +1,329 @@
+package;
+
+import openfl.display.Sprite;
+import openfl.Lib;
+import openfl.Assets;
+import openfl.display.Bitmap;
+import openfl.display.BitmapData;
+import openfl.events.MouseEvent;
+import motion.Actuate;
+import openfl.media.Sound;
+import openfl.media.SoundChannel;
+
+
+/**
+ * ...
+ * @author Sem
+ */
+class Main extends Sprite 
+{
+	var startgamebutton:Sprite = new Sprite();
+	var addRowButton:Sprite = new Sprite();
+	var noSetButton:Sprite = new Sprite();
+	var playAgainButton:Sprite = new Sprite();
+	var count : Int = 0;
+	
+	var deck : Array<Card> = [];
+	var selection : Array<Card> = [];
+	
+	public function new() 
+	{
+		super();
+		
+		//background
+		var backdropData : BitmapData = Assets.getBitmapData("img/solid-green-background.jpg");
+		var backdrop : Bitmap = new Bitmap(backdropData);
+		backdrop.scaleX = 2;
+		backdrop.scaleY = 2;
+		
+		addChild(backdrop);
+		
+		
+		//couldn't find good quality music but this is just to show that i'm able to add music and loop it
+			//var backgroundMusic : Sound = Assets.getMusic("music/namemusic.ogg");
+			//var musicChannel : SoundChannel = backgroundMusic.play(0.0, 10000);
+			//musicChannel.stop();
+		
+		
+		
+		//button to start the game
+		var startgamebuttonData : BitmapData = Assets.getBitmapData("img/Start Game Button.png");
+		var startgamebuttonImage : Bitmap = new Bitmap(startgamebuttonData);
+		startgamebutton.addChild(startgamebuttonImage);
+		startgamebutton.x = 400;
+		startgamebutton.y = 300;
+		
+		addChild(startgamebutton);
+		
+		startgamebutton.addEventListener(MouseEvent.CLICK, StartGame);
+		
+		
+		
+		// Assets:
+		// openfl.Assets.getBitmapData("img/assetname.jpg");
+	}
+	
+	
+	
+	
+	public function StartGame(event : MouseEvent)
+	{
+		deck = [];
+		removeChild(startgamebutton);
+		removeChild(playAgainButton);
+		createDeck();
+		shuffleDeck();
+		createGrid();
+		
+		//back of card to hide deck
+		var cardBackData : BitmapData = Assets.getBitmapData("img/playing-card-back.jpg");
+		var cardBack : Bitmap = new Bitmap(cardBackData);
+		cardBack.scaleX = 0.16;
+		cardBack.scaleY = 0.16;
+		cardBack.x = 20;
+		cardBack.y = 20;
+		
+		addChild(cardBack);
+		
+		
+		//button to add a row of cards
+		var addRowButtonData : BitmapData = Assets.getBitmapData("img/Add Row Button Fixed.png");
+		var addRowButtonImage : Bitmap = new Bitmap(addRowButtonData);
+		addRowButton.addChild(addRowButtonImage);
+		addRowButton.x = 20;
+		addRowButton.y = 200;
+		addRowButton.scaleX = 0.8;
+		addRowButton.scaleY = 0.8;
+		
+		addChild(addRowButton);
+		
+		addRowButton.addEventListener(MouseEvent.CLICK, AddRow);
+	}
+	
+	
+	
+	//adding a row of cards up to 2 rows
+	public function AddRow(event : MouseEvent)
+	{
+		if (count <=1) 
+		{
+			for (y in 0...3)
+			{
+				for (x in 0...1)
+				{
+					var card : Card = deck.pop();
+					
+					Actuate.tween(card, 2.0, { x: 940 + x * 160 + count * 160 });
+					Actuate.tween(card, 2.0, { y: 100 + y * 240 });
+					
+					card.addEventListener(MouseEvent.CLICK, OnCardSelect);
+				}
+			}
+		}
+		count = count + 1;
+		
+		
+	}
+	
+	
+	
+	//creating a deck
+	public function createDeck()
+	{
+		var colours:Array<String> = ["blue", "green", "red"];
+		var fillings:Array<String> = ["filled", "open", "shaded"];
+		var suits:Array<String> = ["diamond", "pill", "wave"];
+		
+		for (i in 1...4) 
+		{
+			
+			for (colour in colours) 
+			{
+				for (filling in fillings) 
+				{
+					for (suit in suits)
+					{
+						var imagePath:String = "img/" + i + "_" + colour + "_" + filling + "_" + suit + ".png";
+						var card:Card = new Card(i, colour, filling, suit);
+						
+						var card : Card = new Card(i, colour, filling, suit);
+						card.x = 80;
+						card.y = 100;
+						
+						deck.push(card);
+						addChild(card);
+						
+					}
+				}
+			}
+		}
+	}
+	
+	
+	
+	
+	public function OnCardSelect(event : MouseEvent)
+	{
+		var card : Card = cast(event.target);
+		card.scaleX = 1.1;
+		card.scaleY = 1.1;
+		
+		if (selection.indexOf(card) == -1)
+		{
+			selection.push(card);
+		}
+		
+		//Checking if the selected cards are a set.
+		if (selection.length == 3)
+		{
+			if (selection[0].i == selection[1].i && selection[0].i == selection[2].i || selection[0].i != selection[1].i && selection[0].i != selection[2].i && selection[1].i != selection[2].i)
+			{
+				if (selection[0].colour == selection[1].colour && selection[0].colour == selection[2].colour || selection[0].colour != selection[1].colour && selection[0].colour != selection[2].colour && selection[1].colour != selection[2].colour) 
+				{
+					if (selection[0].filling == selection[1].filling && selection[0].filling == selection[2].filling || selection[0].filling != selection[1].filling && selection[0].filling != selection[2].filling && selection[1].filling != selection[2].filling) 
+					{
+						if (selection[0].suit == selection[1].suit && selection[0].suit == selection[2].suit || selection[0].suit != selection[1].suit && selection[0].suit != selection[2].suit && selection[1].suit != selection[2].suit) 
+						{
+							if (deck.length < 12) 
+							{
+								EndGame();
+							}
+							else 
+							{
+								
+								// remove card from screen and replace with new card from deck
+								for (card in selection)
+								{
+									Actuate.tween(card, 0.5, { scaleX: 0.5 });
+									Actuate.tween(card, 0.5, { scaleY: 0.5 });
+									Actuate.tween(card, 0.5, { alpha: 0 }).onComplete(deleteCard, [card]);
+									
+									var newCard : Card = deck.pop();
+									if (newCard != null)
+									{
+										
+										Actuate.tween(newCard, 0.5, { x: card.x });
+										Actuate.tween(newCard, 0.5, { y: card.y });
+										
+										newCard.addEventListener(MouseEvent.CLICK, OnCardSelect);
+									}
+								}
+							}
+							
+						}
+						else 
+						{
+							for (card in selection)
+							{
+							card.scaleX = 1;
+							card.scaleY = 1;
+							
+							Sys.println("The shape is not correct");
+							}
+						}
+					}
+					else 
+					{
+						for (card in selection)
+						{
+						card.scaleX = 1;
+						card.scaleY = 1;
+						}
+						
+						Sys.println("The filling is not correct");
+					}
+				}
+				else 
+				{
+					for (card in selection)
+					{
+					card.scaleX = 1;
+					card.scaleY = 1;
+					}
+					
+					Sys.println("The colour is not correct");
+				}
+			}
+			else
+			{
+				for (card in selection)
+				{
+					card.scaleX = 1;
+					card.scaleY = 1;
+					
+					Sys.println("The amount is not correct");
+				}
+			}
+			
+			selection = new Array<Card>();
+		}
+	}
+	
+	function deleteCard(card : Card)
+	{
+		removeChild(card);
+	}
+	
+	
+	
+	
+	//shuffles deck
+	function shuffleDeck()
+	{
+		var n:Int = deck.length;
+		for (i in 0...n) 
+		{
+			var change:Int = i + Math.floor(Math.random() * (n - i));
+			var tempCard = deck[i];
+			deck[i] = deck[change];
+			deck[change] = tempCard;
+		}
+	}
+	
+	
+	
+	
+	//made this a seperate function to make the shuffleDeck function work
+	function createGrid()
+	{ 
+		for (y in 0...3)
+		{
+			for (x in 0...4)
+			{
+				var card : Card = deck.pop();
+				
+				Actuate.tween(card, 2.0, { x: 300 + x * 160 });
+				Actuate.tween(card, 2.0, { y: 100 + y * 240 });
+				
+				card.addEventListener(MouseEvent.CLICK, OnCardSelect);
+			}
+		}
+	}
+	
+	
+	
+	
+	public function EndGame()
+	{
+		removeChildren();
+		//End screen
+		var backdropData : BitmapData = Assets.getBitmapData("img/solid-green-background.jpg");
+		var backdrop : Bitmap = new Bitmap(backdropData);
+		backdrop.scaleX = 2;
+		backdrop.scaleY = 2;
+		
+		addChild(backdrop);
+		
+		//Start game again
+		var playAgainButtonData : BitmapData = Assets.getBitmapData("img/Play Again Button.png");
+		var playAgainButtonImage : Bitmap = new Bitmap(playAgainButtonData);
+		playAgainButton.addChild(playAgainButtonImage);
+		playAgainButton.x = 400;
+		playAgainButton.y = 300;
+		
+		addChild(playAgainButton);
+		
+		playAgainButton.addEventListener(MouseEvent.CLICK, StartGame);
+	}
+	
+}
